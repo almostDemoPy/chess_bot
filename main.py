@@ -19,6 +19,13 @@ bot = commands.Bot(
   )
 )
 
+async def load():
+  for file in os.listdir('cogs'):
+    if file.endswith(".py"):
+      await bot.load_extension(
+        f'cogs.{file[:-3]}'
+      )
+
 async def main():
   await bot.start(
     os.getenv("token")

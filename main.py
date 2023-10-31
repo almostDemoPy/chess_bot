@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 intents = discord.Intents.default()
+intents.message_content = True
 
 bot = commands.Bot(
   command_prefix = "chess.",
@@ -27,6 +28,7 @@ async def load():
       )
 
 async def main():
+  await load()
   await bot.start(
     os.getenv("token")
   )

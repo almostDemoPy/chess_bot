@@ -1,8 +1,10 @@
 import discord
 import json
+import os
 import traceback
 from discord import app_commands, ui
 from discord.ext import commands
+from PIL import Image
 
 class SelectSide(ui.View):
   def __init__(self, user, member):
@@ -33,12 +35,15 @@ class SelectSide(ui.View):
         ephemeral = True
       )
       return
-    board = discord.File('img/board.png', filename = "board.png")
+    with Image.open('img/board.png').convert("RGBA") as board:
+      with Image.open('img/pawn.png').resize(((board.width // 8) - 5, (board.height // 8) - 5)).convert("RGBA") as pawn:
+        board.paste(pawn, (3, 3), mask = pawn)
+        board.save(f"boards/{interaction.message.id}.png")
+    Board = discord.File(f"boards/{interaction.message.id}.png", filename = "newBoard.png")
     embed = discord.Embed(
-      description = f"**White**'s turn !",
       color = 0x2b2d31
     ).set_image(
-      url = "attachment://board.png"
+      url = "attachment://newBoard.png"
     ).set_author(
       name = self.member.display_name,
       icon_url = self.member.display_avatar
@@ -74,7 +79,6 @@ class SelectSide(ui.View):
       return
     board = discord.File('img/board.png', filename = "board.png")
     embed = discord.Embed(
-      description = f"**White**'s turn !",
       color = 0x2b2d31
     ).set_image(
       url = "attachment://board.png"

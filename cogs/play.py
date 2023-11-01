@@ -1,3 +1,4 @@
+import chess
 import discord
 import json
 import os
@@ -5,103 +6,13 @@ import traceback
 from discord import app_commands, ui
 from discord.ext import commands
 from PIL import Image
-
-class SelectSide(ui.View):
-  def __init__(self, user, member):
-    super().__init__(
-      timeout = None
-    )
-    self.user = user
-    self.member = member
-
-  @ui.button(
-    label = "White",
-    custom_id = "selectWhiteSide",
-    style = discord.ButtonStyle.primary
-  )
-  async def selectWhiteSide(self, interaction : discord.Interaction, button : ui.Button):
-    response = interaction.response
-    user = interaction.user
-    if interaction.user not in [self.user, self.member]:
-      err = discord.Embed(
-        description = "You do not own this menu !",
-        color = 0xff3131
-      ).set_author(
-        name = user.display_name,
-        icon_url = user.display_avatar
-      )
-      await interaction.response.send_message(
-        embed = err,
-        ephemeral = True
-      )
-      return
-    with Image.open('img/board.png').convert("RGBA") as board:
-      with Image.open('img/pawn.png').resize(((board.width // 8) - 5, (board.height // 8) - 5)).convert("RGBA") as pawn:
-        board.paste(pawn, (3, 3), mask = pawn)
-        board.save(f"boards/{interaction.message.id}.png")
-    Board = discord.File(f"boards/{interaction.message.id}.png", filename = "newBoard.png")
-    embed = discord.Embed(
-      color = 0x2b2d31
-    ).set_image(
-      url = "attachment://newBoard.png"
-    ).set_author(
-      name = self.member.display_name,
-      icon_url = self.member.display_avatar
-    ).set_footer(
-      text = self.user.display_name,
-      icon_url = self.user.display_avatar
-    )
-    await response.edit_message(
-      embed = embed,
-      view = None
-    )
-
-  @ui.button(
-    label = "Black",
-    custom_id = "selectBlackSide",
-    style = discord.ButtonStyle.primary
-  )
-  async def selectBlackSide(self, interaction : discord.Interaction, button : ui.Button):
-    response = interaction.response
-    user = interaction.user
-    if interaction.user not in [self.user, self.member]:
-      err = discord.Embed(
-        description = "You do not own this menu !",
-        color = 0xff3131
-      ).set_author(
-        name = user.display_name,
-        icon_url = user.display_avatar
-      )
-      await interaction.response.send_message(
-        embed = err,
-        ephemeral = True
-      )
-      return
-    board = discord.File('img/board.png', filename = "board.png")
-    embed = discord.Embed(
-      color = 0x2b2d31
-    ).set_image(
-      url = "attachment://board.png"
-    ).set_author(
-      name = self.user.display_name,
-      icon_url = self.user.display_avatar
-    ).set_footer(
-      text = self.member.display_name,
-      icon_url = self.member.display_avatar
-    )
-    await response.edit_message(
-      embed = embed,
-      view = None
-    )
-
-  async def on_error(self, interaction : discord.Interaction, error):
-    traceback.print_exc()
+from textBoard import TextSelectSide
 
 class Play(commands.Cog):
   def __init__(self, bot):
     self.bot = bot
     print(
-      "Loaded command : /play member : discord.Member"
+      "Loaded command : /play member : discord.Member visual : str"
     )
 
   @app_commands.command(
@@ -109,11 +20,25 @@ class Play(commands.Cog):
     description = "[ALPHA] Play a game of Chess !"
   )
   @app_commands.describe(
-    member = "Select your opponent"
+    member = "Select your opponent",
+    # visual = "Select your method of board display and mechanics"
   )
+  # @app_commands.choices(
+  #   visual = [
+  #     app_commands.Choice(
+  #       name = "Image",
+  #       value = "image"
+  #     ),
+  #     app_commands.Choice(
+  #       name = "Text",
+  #       value = "text"
+  #     )
+  #   ]
+  # )
   async def play(self, interaction : discord.Interaction, member : discord.Member):
     user = interaction.user
     response = interaction.response
+    visual = "text"
     if member == user:
       err = discord.Embed(
         description = "You cannot play Chess all by yourself ! Invite someone in to join you",
@@ -144,14 +69,32 @@ class Play(commands.Cog):
     embed = discord.Embed(
       description = f"Select a side :",
       color = 0x2b2d31
-    ).set_image(
-      url = "attachment://board.png"
     )
-    await interaction.response.send_message(
-      embed = embed,
-      view = SelectSide(user, member),
-      file = board
-    )
+    if visual == "image":
+      embed.set_image(
+        url = "attachment://board.png"
+      )
+      await interaction.response.send_message(
+        embed = embed,
+        view = SelectSide(user, member, visual),
+        file = board
+      )
+    else:
+      Board = chess.Board().empty()
+      strBoard = ""
+      for ind, numberIndicator in enumerate([":eight:", ":seven:", ":six:", ":five:", ":four:", ":three:", ":two:", ":one:"]):
+        strBoard += numberIndicator
+        if ind % 2 == 0:
+          strBoard += ":white_large_square::green_square::white_large_square::green_square::white_large_square::green_square::white_large_square::green_square:"
+        else:
+          strBoard += ":green_square::white_large_square::green_square::white_large_square::green_square::white_large_square::green_square::white_large_square:"
+        strBoard += "\n"
+      strBoard += ":black_large_square::regional_indicator_a::regional_indicator_b::regional_indicator_c::regional_indicator_d::regional_indicator_e::regional_indicator_f::regional_indicator_g::regional_indicator_h:"
+      embed.description += f"\n{strBoard}"
+      await interaction.response.send_message(
+        embed = embed,
+        view = TextSelectSide(user, member, visual, self.bot)
+      )
 
   @play.error
   async def error(self, interaction : discord.Interaction, error):

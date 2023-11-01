@@ -97,6 +97,7 @@ class TextSelectSide(ui.View):
                   color = "white" if char.islower() else "green" 
                 strBoard2 += str(self.bot.get_emoji(emojis[color][char]))
             strBoard2 += "\n"
+          strBoard2 += ":black_large_square::regional_indicator_a::regional_indicator_b::regional_indicator_c::regional_indicator_d::regional_indicator_e::regional_indicator_f::regional_indicator_g::regional_indicator_h:"
           currentTurn = "White" if self.board.turn == chess.WHITE else "Black"
           embed = discord.Embed(
             title = f"**{currentTurn}**'s turn !",

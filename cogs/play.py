@@ -36,6 +36,8 @@ class Play(commands.Cog):
   #   ]
   # )
   async def play(self, interaction : discord.Interaction, member : discord.Member):
+    with open('json/games.json', 'r') as f:
+      games = json.load(f)
     user = interaction.user
     response = interaction.response
     visual = "text"
@@ -61,6 +63,20 @@ class Play(commands.Cog):
         icon_url = self.bot.user.display_avatar
       )
       await interaction.response.send_message(
+        embed = err,
+        ephemeral = True
+      )
+      return
+    if str(user.id) in games:
+      opponent = await self.bot.fetch_user(games[str(user.id)])
+      err = discord.Embed(
+        description = f"You are currently playing a game with {opponent.mention} ! You cannot create another game in the mean time",
+        color = 0xff3131
+      ).set_author(
+        name = self.bot.user.display_name,
+        icon_url = self.bot.user.display_avatar
+      )
+      await response.send_message(
         embed = err,
         ephemeral = True
       )
@@ -95,6 +111,13 @@ class Play(commands.Cog):
         embed = embed,
         view = TextSelectSide(user, member, visual, self.bot)
       )
+    newData = {
+      str(user.id): member.id,
+      str(member.id): user.id
+    }
+    games.update(newData)
+    with open('json/games.json', 'w') as f:
+      json.dump(games, f, indent = 2)
 
   @play.error
   async def error(self, interaction : discord.Interaction, error):

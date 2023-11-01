@@ -21,6 +21,8 @@ class TextSelectSide(ui.View):
     try:
       with open('json/emojis.json', 'r') as f:
         emojis = json.load(f)
+      with open('json/games.json', 'r') as f:
+        games = json.load(f)
       players = {
         str(self.user.id): None,
         str(self.member.id): None
@@ -41,22 +43,54 @@ class TextSelectSide(ui.View):
           players[str(self.member.id)] = "black"
       while True:
         if self.board.is_checkmate() or self.board.is_stalemate():
+          embed = self.boardMsg.embeds[0].copy()
           if self.board.outcome() is None:
             winner = "It's a draw !"
           elif self.board.outcome() == chess.WHITE:
-            winner = "White wins !!"
+            winner = "White wins !"
           elif self.board.outcome() == chess.BLACK:
             winner = "Black wins !"
-          embed = self.boardMsg.embeds[0].copy()
           embed.description = winner
           await self.boardMsg.edit(
             embed = embed
           )
+          del games[str(self.user.id)]
+          del games[str(self.member.id)]
+          with open('json/games.json', 'w') as f:
+            json.dump(games, f, indent = 2)
           break
         currentTurn = "white" if self.board.turn == chess.WHITE else "black"
         def messageCheck(message):
+          if message.author.id in [self.user.id, self.member.id]:
+            if message.content.lower() in ["chess.end", "chess.resign"]:
+              return True
           return message.author.id in [self.user.id, self.member.id] and players[str(message.author.id)] == currentTurn and message.channel.id == interaction.channel.id
         msg = await self.bot.wait_for("message", check = messageCheck)
+        if msg.content.lower() == "chess.end":
+          await msg.delete()
+          embed = self.boardMsg.embeds[0].copy()
+          embed.title = f"Game has been ended by {msg.author.display_name}"
+          await self.boardMsg.edit(
+            embed = embed
+          )
+          del games[str(self.user.id)]
+          del games[str(self.member.id)]
+          with open('json/games.json', 'w') as f:
+            json.dump(games, f, indent = 2)
+          break
+        if msg.content.lower() == "chess.resign":
+          await msg.delete()
+          winner = self.member if msg.author == self.user else self.user
+          embed = self.boardMsg.embeds[0].copy()
+          embed.title = f"{msg.author.display_name} resigned. {winner.display_name} won !"
+          await self.boardMsg.edit(
+            embed = embed
+          )
+          del games[str(self.user.id)]
+          del games[str(self.member.id)]
+          with open('json/games.json', 'w') as f:
+            json.dump(games, f, indent = 2)
+          break
         msgMove = msg.content
         try:
           move = chess.Move.from_uci(msgMove)
@@ -81,20 +115,22 @@ class TextSelectSide(ui.View):
             for ind2, char in enumerate(line):
               if char == ".":
                 if ind % 2 == 0:
-                  color = ":white_large_square:" if ind2 % 2 == 0 else ":green_square:"
-                else:
                   color = ":white_large_square:" if ind2 % 2 != 0 else ":green_square:"
+                else:
+                  color = ":white_large_square:" if ind2 % 2 == 0 else ":green_square:"
                 strBoard2 += color
                 continue
-              if ind2 % 2 == 0:
-                color = "white" if char.islower() else "green"
-                if char in ["p", "P"]:
-                  color = "green" if char.islower() else "white" 
+              if ind % 2 == 0:
+                if ind2 % 2 == 0:
+                  color = "white" if char.islower() else "green"
+                else:
+                  color = "green" if char.islower() else "white"
                 strBoard2 += str(self.bot.get_emoji(emojis[color][char]))
               else:
-                color = "green" if char.islower() else "white"
-                if char in ["p", "P"]:
-                  color = "white" if char.islower() else "green" 
+                if ind2 % 2 == 0:
+                  color = "green" if char.islower() else "white"
+                else:
+                  color = "white" if char.islower() else "green"
                 strBoard2 += str(self.bot.get_emoji(emojis[color][char]))
             strBoard2 += "\n"
           strBoard2 += ":black_large_square::regional_indicator_a::regional_indicator_b::regional_indicator_c::regional_indicator_d::regional_indicator_e::regional_indicator_f::regional_indicator_g::regional_indicator_h:"
@@ -106,18 +142,18 @@ class TextSelectSide(ui.View):
           )
           if players[str(self.member.id)] == "white":
             embed.set_author(
-              name = self.user.display_name,
+              name = self.user.display_name + (f" | {msgMove}" if msg.author == self.user else "") + (" | Check" if msg.author == self.member and self.board.is_check() else "") + (" | Checkmate" if msg.author == self.member and self.board.is_checkmate() else "") + (" | Stalemate" if msg.author == self.member and self.board.is_stalemate() else ""),
               icon_url = self.user.display_avatar
             ).set_footer(
-              text = self.member.display_name,
+              text = self.member.display_name + (f" | {msgMove}" if msg.author == self.member else "") + (" | Check" if msg.author == self.user and self.board.is_check() else "") + (" | Checkmate" if msg.author == self.user and self.board.is_checkmate() else "") + (" | Stalemate" if msg.author == self.user and self.board.is_stalemate() else ""),
               icon_url = self.member.display_avatar
             )
           else:
             embed.set_author(
-              name = self.member.display_name,
+              name = self.member.display_name + (f" | {msgMove}" if msg.author == self.member else "") + (" | Check" if msg.author == self.user and self.board.is_check() else "") + (" | Checkmate" if msg.author == self.user and self.board.is_checkmate() else "") + (" | Stalemate" if msg.author == self.user and self.board.is_stalemate() else ""),
               icon_url = self.member.display_avatar
             ).set_footer(
-              text = self.user.display_name,
+              text = self.user.display_name + (f" | {msgMove}" if msg.author == self.user else "") + (" | Check" if msg.author == self.member and self.board.is_check() else "") + (" | Checkmate" if msg.author == self.member and self.board.is_checkmate() else "") + (" | Stalemate" if msg.author == self.member and self.board.is_stalemate() else ""),
               icon_url = self.user.display_avatar
             )
           await self.boardMsg.delete()

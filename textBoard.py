@@ -47,7 +47,7 @@ class TextSelectSide(ui.View):
             winner = "White wins !!"
           elif self.board.outcome() == chess.BLACK:
             winner = "Black wins !"
-          embed = self.boardMsg.copy()
+          embed = self.boardMsg.embeds[0].copy()
           embed.description = winner
           await self.boardMsg.edit(
             embed = embed

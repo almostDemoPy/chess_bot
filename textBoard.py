@@ -91,7 +91,6 @@ class TextSelectSide(ui.View):
           for ind, number in enumerate(numberIndicatorList):
             strBoard2 += number
             line = strBoard.split("\n")[ind][len(number):]
-            print(line)
             for ind2, char in enumerate(line):
               if char == ".":
                 if ind % 2 == 0:

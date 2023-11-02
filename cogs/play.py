@@ -123,16 +123,22 @@ class Play(commands.Cog):
   async def error(self, interaction : discord.Interaction, error):
     traceback.print_exc()
     err = discord.Embed(
-      description = "Something went wrong",
+      description = f"{interaction.user.mention}, Something went wrong",
       color = 0xff3131
     ).set_author(
       name = self.bot.user.display_name,
       icon_url = self.bot.user.display_avatar
     )
-    await interaction.response.send_message(
-      embed = err,
-      ephemeral = True
-    )
+    try:
+        await interaction.response.send_message(
+            embed = err,
+            ephemeral = True
+        )
+    except:
+        await interaction.channel.send(
+            embed = err,
+            delete_after = 10
+        )
 
 async def setup(bot):
   await bot.add_cog(Play(bot))

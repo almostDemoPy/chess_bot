@@ -16,6 +16,7 @@ class TextSelectSide(ui.View):
     self.bot = bot
     self.board = None
     self.boardMsg = None
+    self.boardThread = None
 
   async def startGame(self, interaction : discord.Interaction, side : str):
     try:
@@ -64,7 +65,7 @@ class TextSelectSide(ui.View):
           if message.author.id in [self.user.id, self.member.id]:
             if message.content.lower() in ["chess.end", "chess.resign"]:
               return True
-          return message.author.id in [self.user.id, self.member.id] and players[str(message.author.id)] == currentTurn and message.channel.id == interaction.channel.id
+          return message.author.id in [self.user.id, self.member.id] and players[str(message.author.id)] == currentTurn and message.channel == self.boardThread
         msg = await self.bot.wait_for("message", check = messageCheck)
         if msg.content.lower() in ["chess.end", "chess.resign"]:
           await msg.delete()
@@ -137,8 +138,7 @@ class TextSelectSide(ui.View):
               text = self.user.display_name + (f" | {msgMove}" if msg.author == self.user else "") + (" | Check" if msg.author == self.member and self.board.is_check() else "") + (" | Checkmate" if msg.author == self.member and self.board.is_checkmate() else "") + (" | Stalemate" if msg.author == self.member and self.board.is_stalemate() else ""),
               icon_url = self.user.display_avatar
             )
-          await self.boardMsg.delete()
-          self.boardMsg = await interaction.channel.send(
+          self.boardMsg = await self.boardMsg.edit(
             embed = embed
           )
           await msg.delete()
@@ -239,6 +239,10 @@ class TextSelectSide(ui.View):
     await origRes.delete()
     self.boardMsg = await interaction.channel.send(
       embed = embed
+    )
+    self.boardThread = await interaction.channel.create_thread(
+      name = f"{self.user.display_name} VS. {self.member.display_name}",
+      message = self.boardMsg
     )
     await self.startGame(interaction, "white")
 

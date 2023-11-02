@@ -87,14 +87,7 @@ class Play(commands.Cog):
       color = 0x2b2d31
     )
     if visual == "image":
-      embed.set_image(
-        url = "attachment://board.png"
-      )
-      await interaction.response.send_message(
-        embed = embed,
-        view = SelectSide(user, member, visual),
-        file = board
-      )
+      pass
     else:
       Board = chess.Board().empty()
       strBoard = ""

@@ -66,30 +66,9 @@ class TextSelectSide(ui.View):
               return True
           return message.author.id in [self.user.id, self.member.id] and players[str(message.author.id)] == currentTurn and message.channel.id == interaction.channel.id
         msg = await self.bot.wait_for("message", check = messageCheck)
-        if msg.content.lower() == "chess.end":
+        if msg.content.lower() in ["chess.end", "chess.resign"]:
           await msg.delete()
-          embed = self.boardMsg.embeds[0].copy()
-          embed.title = f"Game has been ended by {msg.author.display_name}"
-          await self.boardMsg.edit(
-            embed = embed
-          )
-          del games[str(self.user.id)]
-          del games[str(self.member.id)]
-          with open('json/games.json', 'w') as f:
-            json.dump(games, f, indent = 2)
-          break
-        if msg.content.lower() == "chess.resign":
-          await msg.delete()
-          winner = self.member if msg.author == self.user else self.user
-          embed = self.boardMsg.embeds[0].copy()
-          embed.title = f"{msg.author.display_name} resigned. {winner.display_name} won !"
-          await self.boardMsg.edit(
-            embed = embed
-          )
-          del games[str(self.user.id)]
-          del games[str(self.member.id)]
-          with open('json/games.json', 'w') as f:
-            json.dump(games, f, indent = 2)
+          await self.bot.process_commands(msg)
           break
         msgMove = msg.content
         try:
@@ -112,6 +91,7 @@ class TextSelectSide(ui.View):
           for ind, number in enumerate(numberIndicatorList):
             strBoard2 += number
             line = strBoard.split("\n")[ind][len(number):]
+            print(line)
             for ind2, char in enumerate(line):
               if char == ".":
                 if ind % 2 == 0:
@@ -122,16 +102,18 @@ class TextSelectSide(ui.View):
                 continue
               if ind % 2 == 0:
                 if ind2 % 2 == 0:
-                  color = "white" if char.islower() else "green"
+                  color = "green"
                 else:
-                  color = "green" if char.islower() else "white"
+                  color = "white"
                 strBoard2 += str(self.bot.get_emoji(emojis[color][char]))
+                continue
               else:
                 if ind2 % 2 == 0:
-                  color = "green" if char.islower() else "white"
+                  color = "white"
                 else:
-                  color = "white" if char.islower() else "green"
+                  color = "green"
                 strBoard2 += str(self.bot.get_emoji(emojis[color][char]))
+                continue
             strBoard2 += "\n"
           strBoard2 += ":black_large_square::regional_indicator_a::regional_indicator_b::regional_indicator_c::regional_indicator_d::regional_indicator_e::regional_indicator_f::regional_indicator_g::regional_indicator_h:"
           currentTurn = "White" if self.board.turn == chess.WHITE else "Black"
@@ -270,8 +252,8 @@ class TextSelectSide(ui.View):
     with open('json/emojis.json', 'r') as f:
       emojis = json.load(f)
     response = interaction.response
-    await response.defer()
     user = interaction.user
+    await response.defer()
     if interaction.user not in [self.user, self.member]:
       err = discord.Embed(
         description = "You do not own this menu !",

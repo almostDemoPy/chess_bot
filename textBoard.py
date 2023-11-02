@@ -1,3 +1,4 @@
+import asyncio
 import chess
 import discord
 import json
@@ -61,10 +62,22 @@ class TextSelectSide(ui.View):
             json.dump(games, f, indent = 2)
           break
         currentTurn = "white" if self.board.turn == chess.WHITE else "black"
-        def messageCheck(message):
+        async def messageCheck(message):
           if message.author.id in [self.user.id, self.member.id]:
             if message.content.lower() in ["chess.end", "chess.resign"]:
-              return True
+              err = discord.Embed(
+                description = "This thread is only for chess moves ! You cannot do commands here !",
+                color = 0x2b2d31
+              ).set_author(
+                name = self.bot.user.display_name,
+                icon_url = self.bot.user.display_avatar
+              )
+              await message.reply(
+                embed = err,
+                delete_after = 10
+              )
+              await message.delete()
+              return False
           return message.author.id in [self.user.id, self.member.id] and players[str(message.author.id)] == currentTurn and message.channel == self.boardThread
         msg = await self.bot.wait_for("message", check = messageCheck)
         if msg.content.lower() in ["chess.end", "chess.resign"]:
@@ -75,7 +88,6 @@ class TextSelectSide(ui.View):
         try:
           move = chess.Move.from_uci(msgMove)
           if move not in self.board.legal_moves:
-            print("not in legal moves")
             continue
           self.board.push(move)
           strBoard = ""

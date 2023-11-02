@@ -33,11 +33,22 @@ class End(commands.Cog):
         delete_after = 10
       )
       return
-    await asyncio.sleep(5)
+    await asyncio.sleep(3)
     opponent = await self.bot.fetch_user(games[str(user.id)])
     boardMsg = None
     if isinstance(ctx.channel, discord.Thread):
-      boardMsg = ctx.channel.starter_message
+      err = discord.Embed(
+        description = "This thread is only for chess moves ! You cannot do commands here !",
+        color = 0x2b2d31
+      ).set_author(
+        name = self.bot.user.display_name,
+        icon_url = self.bot.user.display_avatar
+      )
+      await ctx.channel.send(
+        embed = err,
+        delete_after = 10
+      )
+      return
     else:
       async for message in ctx.channel.history(limit = None):
         if message.author == self.bot.user and len(message.embeds) != 0:

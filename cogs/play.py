@@ -41,6 +41,19 @@ class Play(commands.Cog):
     user = interaction.user
     response = interaction.response
     visual = "text"
+    if isinstance(interaction.channel, discord.Thread):
+      err = discord.Embed(
+        description = "You cannot create a game of Chess in a thread !",
+        color = 0xff3131
+      ).set_author(
+        name = self.bot.user.display_name,
+        icon_url = self.bot.user.display_avatar
+      )
+      await response.send_message(
+        embed = err,
+        ephemeral = True
+      )
+      return
     if member == user:
       err = discord.Embed(
         description = "You cannot play Chess all by yourself ! Invite someone in to join you",

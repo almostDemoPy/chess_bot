@@ -33,15 +33,28 @@ class Resign(commands.Cog):
         delete_after = 10
       )
       return
-    await asyncio.sleep(5)
     opponent = await self.bot.fetch_user(games[str(user.id)])
     boardMsg = None
-    async for message in ctx.channel.history(limit = None):
-      if message.author == self.bot.user and len(message.embeds) != 0:
-        if message.embeds[0].footer.text is not None and message.embeds[0].author.name is not None and message.embeds[0].title.endswith("turn !"):
-          if (message.embeds[0].footer.text.startswith(user.display_name) and message.embeds[0].author.name.startswith(opponent.display_name)) or (message.embeds[0].footer.text.startswith(opponent.display_name) and message.embeds[0].author.name.startswith(user.display_name)):
-            boardMsg = message
-            break
+    if isinstance(ctx.channel, discord.Thread):
+      err = discord.Embed(
+        description = "This thread is only for chess moves ! You cannot do commands here !",
+        color = 0x2b2d31
+      ).set_author(
+        name = self.bot.user.display_name,
+        icon_url = self.bot.user.display_avatar
+      )
+      await ctx.channel.send(
+        embed = err,
+        delete_after = 10
+      )
+      return
+    else:
+      async for message in ctx.channel.history(limit = None):
+        if message.author == self.bot.user and len(message.embeds) != 0:
+          if message.embeds[0].footer.text is not None and message.embeds[0].author.name is not None and message.embeds[0].title.endswith("turn !"):
+            if (message.embeds[0].footer.text.startswith(user.display_name) and message.embeds[0].author.name.startswith(opponent.display_name)) or (message.embeds[0].footer.text.startswith(opponent.display_name) and message.embeds[0].author.name.startswith(user.display_name)):
+              boardMsg = message
+              break
     if boardMsg is None:
       err = discord.Embed(
         description = f"{user.mention}, You do not have an active game in this channel",
@@ -68,11 +81,19 @@ class Resign(commands.Cog):
       await boardMsg.edit(
         embed = embed
       )
-      await ctx.send(
-        f"Ended **{user.display_name}** and **{opponent.display_name}**'s game with a resign",
-        mention_author = False,
-        delete_after = 10
-      )
+      if isinstance(ctx.channel, discord.Thread):
+        await ctx.channel.delete()
+      else:
+        try:
+          boardThread = ctx.channel.get_thread(boardMsg.id)
+          await boardThread.delete()
+        except:
+          pass
+        await ctx.send(
+          f"Ended **{user.display_name}** and **{opponent.display_name}**'s game with a resign",
+          mention_author = False,
+          delete_after = 10
+        )
 
   @resign.error
   async def error(self, ctx, error):
